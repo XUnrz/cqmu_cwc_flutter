@@ -170,6 +170,8 @@ class MyTab extends StatelessWidget {
                 _Note(
                   text: '密码在客户端用 AES-128-ECB 加密后提交；账号、密码与 OpenID 保存在本地，用于自动填充并自动获取验证码。',
                 ),
+                _Note(text: '开阀会暂扣押金，用完请及时在水控页关阀结算。'),
+                _Note(text: '遇到账务异常，请以学校一卡通系统记录为准。'),
                 _Note(text: '所有接口按 API抓取.md 收录，可在「接口」页搜索、填参并调用。'),
                 _Note(text: 'POST 多为写操作，目录页调用前会二次确认。'),
                 _Note(text: 'Web 端可能被浏览器跨域（CORS）拦截，建议使用原生端。'),
