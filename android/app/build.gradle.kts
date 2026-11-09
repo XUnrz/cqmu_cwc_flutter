@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cqmu.cqmu_cwc"
+    namespace = "top.xnrz.cqmu_cwc"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,8 +15,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.cqmu.cqmu_cwc"
+        applicationId = "top.xnrz.cqmu_cwc"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -26,7 +25,7 @@ android {
         // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
         // flag during build.
         versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionName = "0.1a"
     }
 
     buildTypes {

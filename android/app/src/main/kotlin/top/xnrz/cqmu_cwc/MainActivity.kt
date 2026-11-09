@@ -1,4 +1,4 @@
-package com.cqmu.cqmu_cwc
+package top.xnrz.cqmu_cwc
 
 import io.flutter.embedding.android.FlutterActivity
 
