@@ -54,6 +54,7 @@ class _DataCallsPageState extends State<DataCallsPage> {
       final ApiEndpoint? endpoint = endpointByPath(call.path);
       final Map<String, String> params = <String, String>{
         if (endpoint != null) ...endpointParams(endpoint, widget.app.session),
+        ...dateRangeDefaults(call.path),
         ...call.overrides,
       };
       try {

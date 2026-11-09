@@ -1,8 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../models/session.dart';
 import 'cwc_client.dart';
 import 'session_store.dart';
+import 'settings_store.dart';
 
 /// 全局登录态：持有 [CwcClient] 与当前 [session]。
 class AppState extends ChangeNotifier {
@@ -10,6 +11,7 @@ class AppState extends ChangeNotifier {
 
   final CwcClient client;
   CwcSession? session;
+  ThemeMode themeMode = ThemeMode.system;
 
   bool restoring = true;
   bool busy = false;
@@ -22,8 +24,16 @@ class AppState extends ChangeNotifier {
     restoring = true;
     notifyListeners();
     session = await SessionStore.load();
+    themeMode = await SettingsStore.loadThemeMode();
     restoring = false;
     notifyListeners();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (themeMode == mode) return;
+    themeMode = mode;
+    notifyListeners();
+    await SettingsStore.saveThemeMode(mode);
   }
 
   Future<void> signIn({
@@ -45,7 +55,7 @@ class AppState extends ChangeNotifier {
       );
       session = s;
       await SessionStore.save(s);
-      await SessionStore.saveLoginHints(userNo, openId);
+      await SessionStore.saveLoginHints(userNo, password, openId);
     } finally {
       busy = false;
       notifyListeners();

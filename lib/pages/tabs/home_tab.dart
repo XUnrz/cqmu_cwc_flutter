@@ -22,19 +22,19 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   bool _loading = false;
   String? _error;
-  Map<String, dynamic>? _account;
+  Map<String, dynamic>? _ecard;
 
   static const List<(IconData, String, String)> _quickActions =
       <(IconData, String, String)>[
-    (Icons.credit_card, '校园卡信息', '/card/info/get'),
-    (Icons.wallet_outlined, '电子卡信息', '/eaccount/info'),
-    (Icons.receipt_long_outlined, '交易流水', '/card/transaction/page'),
-    (Icons.qr_code_2, '付款码', '/eaccount/transKey'),
-    (Icons.apps, '我的菜单', '/baseconfig/v2/menus'),
-    (Icons.pie_chart_outline, '消费统计', '/market/transaction/sum/page'),
-    (Icons.notifications_outlined, '通知', '/notice/tops'),
-    (Icons.savings_outlined, '充值记录', '/fee/balance/queryRechargePage'),
-  ];
+        (Icons.wallet_outlined, '电子卡信息', '/eaccount/info'),
+        (Icons.qr_code_2, '付款码', '/eaccount/transKey'),
+        (Icons.savings_outlined, '充值记录', '/fee/balance/queryRechargePage'),
+        (Icons.pie_chart_outline, '消费统计', '/market/transaction/sum/page'),
+        (Icons.receipt_long_outlined, '交易流水', '/card/transaction/page'),
+        (Icons.apps, '我的菜单', '/baseconfig/v2/menus'),
+        (Icons.notifications_outlined, '通知', '/notice/tops'),
+        (Icons.credit_card, '校园卡信息', '/card/info/get'),
+      ];
 
   @override
   void initState() {
@@ -55,16 +55,20 @@ class _HomeTabState extends State<HomeTab> {
     try {
       final Map<String, dynamic> r = await widget.app.client.request(
         'POST',
-        '/employee/account',
+        '/eaccount/info',
         <String, String>{'empId': empId},
         token: widget.app.current.accessToken,
       );
       if (!mounted) return;
       if (!isSuccess(r)) {
-        setState(() => _error = messageOf(r).isEmpty ? '获取账户信息失败' : messageOf(r));
+        setState(
+          () => _error = messageOf(r).isEmpty ? '获取电子卡信息失败' : messageOf(r),
+        );
       } else {
         final Object? data = dataOf(r);
-        setState(() => _account = data is Map ? data.cast<String, dynamic>() : null);
+        setState(
+          () => _ecard = data is Map ? data.cast<String, dynamic>() : null,
+        );
       }
     } on CwcException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -79,7 +83,7 @@ class _HomeTabState extends State<HomeTab> {
         builder: (_) => DataCallsPage(
           app: widget.app,
           title: title,
-          calls: <ApiCall>[ApiCall(path)],
+          calls: <ApiCall>[ApiCall(path, overrides: dateRangeDefaults(path))],
         ),
       ),
     );
@@ -87,9 +91,7 @@ class _HomeTabState extends State<HomeTab> {
 
   void _openPaymentCode() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => PaymentCodePage(app: widget.app),
-      ),
+      MaterialPageRoute<void>(builder: (_) => PaymentCodePage(app: widget.app)),
     );
   }
 
@@ -105,7 +107,7 @@ class _HomeTabState extends State<HomeTab> {
           _ProfileCard(app: widget.app),
           const SizedBox(height: 12),
           _BalanceCard(
-            account: _account,
+            ecard: _ecard,
             loading: _loading,
             error: _error,
             onRetry: _loadAccount,
@@ -123,8 +125,10 @@ class _HomeTabState extends State<HomeTab> {
           ),
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              final int columns =
-                  (constraints.maxWidth / 96).floor().clamp(4, 8);
+              final int columns = (constraints.maxWidth / 96).floor().clamp(
+                4,
+                8,
+              );
               return GridView.count(
                 crossAxisCount: columns,
                 shrinkWrap: true,
@@ -182,7 +186,9 @@ class _ProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
-    final String name = app.current.userName.isEmpty ? '已登录用户' : app.current.userName;
+    final String name = app.current.userName.isEmpty
+        ? '已登录用户'
+        : app.current.userName;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -220,8 +226,9 @@ class _ProfileCard extends StatelessWidget {
                         ? null
                         : app.current.departmentName,
                   ].whereType<String>().join(' · '),
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: scheme.onPrimaryContainer),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onPrimaryContainer,
+                  ),
                 ),
               ],
             ),
@@ -235,13 +242,13 @@ class _ProfileCard extends StatelessWidget {
 
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({
-    required this.account,
+    required this.ecard,
     required this.loading,
     required this.error,
     required this.onRetry,
   });
 
-  final Map<String, dynamic>? account;
+  final Map<String, dynamic>? ecard;
   final bool loading;
   final String? error;
   final VoidCallback onRetry;
@@ -250,9 +257,11 @@ class _BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
-    final Map<String, dynamic>? data = account;
+    final Map<String, dynamic>? data = ecard;
+    final Object? rawStatus = data?['eaccountStatus'];
+    final String status = rawStatus is String ? rawStatus : '';
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(20),
@@ -262,7 +271,9 @@ class _BalanceCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Text('账户余额', style: theme.textTheme.titleSmall),
+              Icon(Icons.wallet_outlined, size: 18, color: scheme.primary),
+              const SizedBox(width: 6),
+              Text('电子卡余额', style: theme.textTheme.titleSmall),
               const Spacer(),
               if (loading)
                 const SizedBox(
@@ -278,38 +289,55 @@ class _BalanceCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (error != null)
             Text(error!, style: TextStyle(color: scheme.error, fontSize: 13))
           else if (data != null)
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _Amount(
-                    label: '校园卡',
-                    value: moneyText(data['cardValue']),
-                    color: scheme.onSurface,
-                  ),
-                ),
-                Expanded(
-                  child: _Amount(
-                    label: '电子卡',
-                    value: moneyText(data['eaccountValue']),
-                    color: scheme.onSurface,
-                  ),
-                ),
-              ],
+            Text(
+              '¥ ${moneyText(data['eaccountValue'])}',
+              style: theme.textTheme.headlineLarge?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
             )
           else
             Text(
               '下拉刷新余额',
               style: TextStyle(color: scheme.outline, fontSize: 13),
             ),
-          if (data != null && data['cardStatus'] != null) ...<Widget>[
+          if (data != null) ...<Widget>[
             const SizedBox(height: 10),
-            Text(
-              '卡状态：${data['cardStatus']}',
-              style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                if (status.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '状态 $status',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSecondaryContainer,
+                      ),
+                    ),
+                  ),
+                Text(
+                  '账户号 ${data['eaccountId'] ?? '—'}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -318,33 +346,12 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-class _Amount extends StatelessWidget {
-  const _Amount({required this.label, required this.value, required this.color});
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(label, style: theme.textTheme.bodySmall),
-        const SizedBox(height: 2),
-        Text(
-          '¥ $value',
-          style: theme.textTheme.headlineSmall
-              ?.copyWith(color: color, fontWeight: FontWeight.bold),
-        ),
-      ],
-    );
-  }
-}
-
 class _QuickTile extends StatelessWidget {
-  const _QuickTile({required this.icon, required this.label, required this.onTap});
+  const _QuickTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;

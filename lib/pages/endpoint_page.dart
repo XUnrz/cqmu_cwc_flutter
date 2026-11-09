@@ -35,12 +35,20 @@ class _EndpointPageState extends State<EndpointPage> {
   }
 
   void _resetTemplate() {
-    final Map<String, String> values =
-        endpointParams(endpoint, widget.app.session);
+    final Map<String, String> values = endpointParams(
+      endpoint,
+      widget.app.session,
+    );
+    for (final MapEntry<String, String> e in dateRangeDefaults(
+      endpoint.path,
+    ).entries) {
+      if (values.containsKey(e.key) && values[e.key]!.isEmpty) {
+        values[e.key] = e.value;
+      }
+    }
     for (final MapEntry<String, String> e in values.entries) {
-      _controllers
-          .putIfAbsent(e.key, () => TextEditingController())
-          .text = e.value;
+      _controllers.putIfAbsent(e.key, () => TextEditingController()).text =
+          e.value;
     }
   }
 
@@ -105,9 +113,7 @@ class _EndpointPageState extends State<EndpointPage> {
         endpoint.method,
         endpoint.path,
         params,
-        token: endpoint.requireToken
-            ? widget.app.current.accessToken
-            : null,
+        token: endpoint.requireToken ? widget.app.current.accessToken : null,
       );
       if (mounted) setState(() => _response = r);
     } on CwcException catch (e) {
@@ -176,9 +182,14 @@ class _EndpointPageState extends State<EndpointPage> {
                     _Badge(text: endpoint.module, color: scheme.secondary),
                     _Badge(
                       text: endpoint.requireToken ? '需要 accessToken' : '公开接口',
-                      color: endpoint.requireToken ? scheme.primary : scheme.outline,
+                      color: endpoint.requireToken
+                          ? scheme.primary
+                          : scheme.outline,
                     ),
-                    _Badge(text: '${endpoint.params.length} 个参数', color: scheme.outline),
+                    _Badge(
+                      text: '${endpoint.params.length} 个参数',
+                      color: scheme.outline,
+                    ),
                   ],
                 ),
               ],
@@ -198,9 +209,7 @@ class _EndpointPageState extends State<EndpointPage> {
               Text('参数', style: theme.textTheme.titleMedium),
               const Spacer(),
               TextButton.icon(
-                onPressed: _loading
-                    ? null
-                    : () => setState(_resetTemplate),
+                onPressed: _loading ? null : () => setState(_resetTemplate),
                 icon: const Icon(Icons.restart_alt, size: 18),
                 label: const Text('按会话填充'),
               ),
@@ -211,7 +220,9 @@ class _EndpointPageState extends State<EndpointPage> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 '该接口无固定参数（可能由后端根据 token / 路径识别）。',
-                style: theme.textTheme.bodySmall?.copyWith(color: scheme.outline),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.outline,
+                ),
               ),
             )
           else
@@ -262,7 +273,9 @@ class _EndpointPageState extends State<EndpointPage> {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 'POST 请求会先弹出确认框；多数只读查询也使用 POST。',
-                style: theme.textTheme.bodySmall?.copyWith(color: scheme.outline),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.outline,
+                ),
               ),
             ),
           const SizedBox(height: 20),
@@ -283,7 +296,9 @@ class _EndpointPageState extends State<EndpointPage> {
                 children: <Widget>[
                   Icon(
                     ok ? Icons.check_circle_outline : Icons.error_outline,
-                    color: ok ? scheme.onPrimaryContainer : scheme.onErrorContainer,
+                    color: ok
+                        ? scheme.onPrimaryContainer
+                        : scheme.onErrorContainer,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -359,14 +374,22 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }
 }
 
 class _Banner extends StatelessWidget {
-  const _Banner({required this.text, required this.color, required this.onColor});
+  const _Banner({
+    required this.text,
+    required this.color,
+    required this.onColor,
+  });
 
   final String text;
   final Color color;

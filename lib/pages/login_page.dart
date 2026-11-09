@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/app_state.dart';
@@ -19,10 +21,14 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _password = TextEditingController();
   final TextEditingController _openId = TextEditingController();
   final TextEditingController _loginCode = TextEditingController();
+  final FocusNode _codeFocus = FocusNode();
 
   bool _obscure = true;
   bool _submitting = false;
   bool _sending = false;
+  bool _autoSent = false;
+  int _cooldown = 0;
+  Timer? _cooldownTimer;
   String? _error;
   String? _info;
 
@@ -33,16 +39,25 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loadHints() async {
-    final (String userNo, String openId) = await SessionStore.loadLoginHints();
+    final (String userNo, String password, String openId) =
+        await SessionStore.loadLoginHints();
     if (!mounted) return;
     setState(() {
       if (userNo.isNotEmpty) _userNo.text = userNo;
+      if (password.isNotEmpty) _password.text = password;
       if (openId.isNotEmpty) _openId.text = openId;
     });
+    if (_autoSent) return;
+    if (userNo.isNotEmpty && password.isNotEmpty && openId.isNotEmpty) {
+      _autoSent = true;
+      await _sendCode(auto: true);
+    }
   }
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
+    _codeFocus.dispose();
     _userNo.dispose();
     _password.dispose();
     _openId.dispose();
@@ -50,13 +65,29 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> _sendCode() async {
+  void _startCooldown() {
+    _cooldownTimer?.cancel();
+    setState(() => _cooldown = 30);
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      setState(() {
+        _cooldown -= 1;
+        if (_cooldown <= 0) t.cancel();
+      });
+    });
+  }
+
+  Future<void> _sendCode({bool auto = false}) async {
+    if (_sending || _cooldown > 0) return;
     final String userNo = _userNo.text.trim();
     if (userNo.isEmpty) {
       setState(() => _error = '请先输入学号 / 工号');
       return;
     }
-    FocusScope.of(context).unfocus();
+    if (!auto) FocusScope.of(context).unfocus();
     setState(() {
       _sending = true;
       _error = null;
@@ -65,7 +96,15 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final String target = await widget.app.client.sendLoginCode(userNo);
       if (!mounted) return;
-      setState(() => _info = '验证码已发送${target.isEmpty ? '' : '至 $target'}');
+      setState(
+        () => _info = '验证码已发送${target.isEmpty ? '' : '至 $target'}，30 秒内可重新获取',
+      );
+      _startCooldown();
+      if (auto) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _codeFocus.requestFocus();
+        });
+      }
     } on CwcException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -120,15 +159,17 @@ class _LoginPageState extends State<LoginPage> {
                 Text(
                   '重医一卡通',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '校园卡 · 电子卡 · 缴费 · 全部接口',
+                  '电子卡 · 校园卡 · 缴费 · 全部接口',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: scheme.onSurfaceVariant),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 TextField(
@@ -153,7 +194,9 @@ class _LoginPageState extends State<LoginPage> {
                     suffixIcon: IconButton(
                       tooltip: _obscure ? '显示密码' : '隐藏密码',
                       icon: Icon(
-                        _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        _obscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
                       ),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
@@ -178,9 +221,11 @@ class _LoginPageState extends State<LoginPage> {
                   children: <Widget>[
                     Expanded(
                       child: TextField(
+                        key: const Key('login-logincode'),
                         controller: _loginCode,
+                        focusNode: _codeFocus,
                         decoration: const InputDecoration(
-                          labelText: '短信验证码（可选）',
+                          labelText: '短信验证码',
                           prefixIcon: Icon(Icons.sms_outlined),
                           border: OutlineInputBorder(),
                         ),
@@ -192,8 +237,15 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(
                       height: 56,
                       child: OutlinedButton(
-                        onPressed: _sending ? null : _sendCode,
-                        child: Text(_sending ? '发送中…' : '发送验证码'),
+                        key: const Key('login-send-code'),
+                        onPressed: _sending || _cooldown > 0 ? null : _sendCode,
+                        child: Text(
+                          _sending
+                              ? '发送中…'
+                              : _cooldown > 0
+                              ? '${_cooldown}s 后重发'
+                              : '获取验证码',
+                        ),
                       ),
                     ),
                   ],
@@ -223,13 +275,17 @@ class _LoginPageState extends State<LoginPage> {
                 Text(
                   '接口地址：$cwcBaseUrl',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(color: scheme.outline),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.outline,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Web 端受浏览器跨域限制，建议在 Android / iOS / macOS / Windows / Linux 运行。',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(color: scheme.outline),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.outline,
+                  ),
                 ),
               ],
             ),
@@ -259,7 +315,9 @@ class _Message extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          color: isError ? scheme.onErrorContainer : scheme.onSecondaryContainer,
+          color: isError
+              ? scheme.onErrorContainer
+              : scheme.onSecondaryContainer,
         ),
       ),
     );

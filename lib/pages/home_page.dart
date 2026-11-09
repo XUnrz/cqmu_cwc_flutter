@@ -5,6 +5,7 @@ import 'payment_code_page.dart';
 import 'tabs/catalog_tab.dart';
 import 'tabs/home_tab.dart';
 import 'tabs/my_tab.dart';
+import 'tabs/water_tab.dart';
 
 /// 主界面：底部导航（窄屏）/ 侧栏（宽屏）。
 class HomePage extends StatefulWidget {
@@ -29,7 +30,7 @@ class _HomePageState extends State<HomePage> {
 
   void _openCatalog([String? module]) {
     setState(() {
-      _index = 1;
+      _index = 2;
       _catalogModule = module;
     });
   }
@@ -71,6 +72,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final List<Widget> tabs = <Widget>[
       HomeTab(app: widget.app, onOpenCatalog: _openCatalog),
+      WaterTab(app: widget.app, isActive: _index == 1),
       CatalogTab(
         app: widget.app,
         initialModule: _catalogModule,
@@ -81,6 +83,7 @@ class _HomePageState extends State<HomePage> {
     const List<(IconData, IconData, String)> destinations =
         <(IconData, IconData, String)>[
       (Icons.dashboard_outlined, Icons.dashboard, '首页'),
+      (Icons.water_drop_outlined, Icons.water_drop, '水控'),
       (Icons.api_outlined, Icons.api, '接口'),
       (Icons.person_outline, Icons.person, '我的'),
     ];

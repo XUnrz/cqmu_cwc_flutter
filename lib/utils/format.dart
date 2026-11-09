@@ -21,10 +21,7 @@ const Set<String> _userNoKeys = <String>{
   'payerid',
 };
 
-const Set<String> _userNameKeys = <String>{
-  'username',
-  'empname',
-};
+const Set<String> _userNameKeys = <String>{'username', 'empname'};
 
 /// 参数模板：文档默认值 + 会话值（userId / userNo / openId / userName）。
 Map<String, String> endpointParams(ApiEndpoint endpoint, CwcSession? session) {
@@ -128,4 +125,34 @@ String maskToken(String token) {
   if (token.isEmpty) return '—';
   if (token.length <= 10) return '${token.substring(0, 2)}****';
   return '${token.substring(0, 6)}…${token.substring(token.length - 4)}';
+}
+
+/// yyyy-MM-dd，与 H5 日期选择器提交格式一致。
+String dateText(DateTime date) {
+  final String m = date.month.toString().padLeft(2, '0');
+  final String d = date.day.toString().padLeft(2, '0');
+  return '${date.year}-$m-$d';
+}
+
+/// 最近 [days] 天的日期区间（含今天）。
+(String, String) recentDateRange({int days = 30, DateTime? today}) {
+  final DateTime end = today ?? DateTime.now();
+  final DateTime start = DateTime(
+    end.year,
+    end.month,
+    end.day,
+  ).subtract(Duration(days: days));
+  return (dateText(start), dateText(end));
+}
+
+const Set<String> _dateRequiredPaths = <String>{
+  '/fee/balance/queryRechargePage',
+  '/market/transaction/sum/page',
+};
+
+/// 后端要求必填时间区间的接口，给出默认值（最近 30 天）。
+Map<String, String> dateRangeDefaults(String path) {
+  if (!_dateRequiredPaths.contains(path)) return const <String, String>{};
+  final (String start, String end) = recentDateRange();
+  return <String, String>{'startTime': start, 'endTime': end};
 }

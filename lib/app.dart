@@ -40,6 +40,7 @@ class _CwcAppState extends State<CwcApp> {
           debugShowCheckedModeBanner: false,
           theme: _theme(Brightness.light),
           darkTheme: _theme(Brightness.dark),
+          themeMode: _app.themeMode,
           locale: const Locale('zh', 'CN'),
           supportedLocales: const <Locale>[Locale('zh', 'CN'), Locale('en')],
           localizationsDelegates: const <LocalizationsDelegate<dynamic>>[

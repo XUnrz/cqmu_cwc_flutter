@@ -82,6 +82,41 @@ class MyTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                Text('外观', style: theme.textTheme.titleMedium),
+                const Divider(height: 20),
+                SegmentedButton<ThemeMode>(
+                  showSelectedIcon: false,
+                  segments: const <ButtonSegment<ThemeMode>>[
+                    ButtonSegment<ThemeMode>(
+                      value: ThemeMode.system,
+                      label: Text('跟随系统'),
+                    ),
+                    ButtonSegment<ThemeMode>(
+                      value: ThemeMode.light,
+                      label: Text('浅色'),
+                    ),
+                    ButtonSegment<ThemeMode>(
+                      value: ThemeMode.dark,
+                      label: Text('深色'),
+                    ),
+                  ],
+                  selected: <ThemeMode>{app.themeMode},
+                  onSelectionChanged: (Set<ThemeMode> selected) =>
+                      app.setThemeMode(selected.first),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          elevation: 0,
+          color: scheme.surfaceContainerHigh,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
                 Text('接口信息', style: theme.textTheme.titleMedium),
                 const Divider(height: 20),
                 _InfoRow(label: '接口地址', value: cwcBaseUrl),
@@ -111,7 +146,9 @@ class MyTab extends StatelessWidget {
               children: <Widget>[
                 Text('说明', style: theme.textTheme.titleMedium),
                 const SizedBox(height: 8),
-                _Note(text: '密码在客户端用 AES-128-ECB 加密后提交，本地不保存密码。'),
+                _Note(
+                  text: '密码在客户端用 AES-128-ECB 加密后提交；账号、密码与 OpenID 保存在本地，用于自动填充并自动获取验证码。',
+                ),
                 _Note(text: '所有接口按 API抓取.md 收录，可在「接口」页搜索、填参并调用。'),
                 _Note(text: 'POST 多为写操作，目录页调用前会二次确认。'),
                 _Note(text: 'Web 端可能被浏览器跨域（CORS）拦截，建议使用原生端。'),
@@ -148,8 +185,9 @@ class _InfoRow extends StatelessWidget {
             width: 96,
             child: Text(
               label,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Expanded(

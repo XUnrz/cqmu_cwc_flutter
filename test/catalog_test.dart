@@ -34,8 +34,10 @@ void main() {
     expect(params['pageSize'], '10');
     expect(params['accountType'], '2');
 
-    final Map<String, String> menus =
-        endpointParams(endpointByPath('/baseconfig/v2/menus')!, session);
+    final Map<String, String> menus = endpointParams(
+      endpointByPath('/baseconfig/v2/menus')!,
+      session,
+    );
     expect(menus['userId'], 'U1');
 
     final Map<String, String> water = endpointParams(
@@ -45,5 +47,23 @@ void main() {
     expect(water['empId'], 'U1');
     expect(water['openid'], 'OPENID');
     expect(water['transCode'], '1015');
+  });
+
+  test('充值记录与消费统计默认带最近 30 天日期', () {
+    final (String start, String end) = recentDateRange(
+      today: DateTime(2026, 11, 9),
+    );
+    expect(start, '2026-10-10');
+    expect(end, '2026-11-09');
+
+    for (final String path in <String>[
+      '/fee/balance/queryRechargePage',
+      '/market/transaction/sum/page',
+    ]) {
+      final Map<String, String> params = dateRangeDefaults(path);
+      expect(params['startTime'], matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')));
+      expect(params['endTime'], matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')));
+    }
+    expect(dateRangeDefaults('/card/info/get'), isEmpty);
   });
 }
