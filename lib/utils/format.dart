@@ -1,64 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
 
-import '../models/api_endpoint.dart';
-import '../models/session.dart';
-
-const Set<String> _userIdKeys = <String>{
-  'userid',
-  'empid',
-  'employeeid',
-  'employee_id',
-};
-
-const Set<String> _userNoKeys = <String>{
-  'userno',
-  'employeeno',
-  'empno',
-  'operator',
-  'cardno',
-  'payerno',
-  'payerid',
-};
-
-const Set<String> _userNameKeys = <String>{'username', 'empname'};
-
-/// 参数模板：文档默认值 + 会话值（userId / userNo / openId / userName）。
-Map<String, String> endpointParams(ApiEndpoint endpoint, CwcSession? session) {
-  final Map<String, String> out = <String, String>{};
-  for (final String key in endpoint.params) {
-    final String lower = key.toLowerCase();
-    String value = endpoint.defaults[key] ?? '';
-    if (session != null) {
-      if (_userIdKeys.contains(lower) && session.userId.isNotEmpty) {
-        value = session.userId;
-      } else if (_userNoKeys.contains(lower) && session.userNo.isNotEmpty) {
-        value = session.userNo;
-      } else if (lower == 'openid' && session.openId.isNotEmpty) {
-        value = session.openId;
-      } else if (_userNameKeys.contains(lower) && session.userName.isNotEmpty) {
-        value = session.userName;
-      }
-    }
-    if (endpoint.encryptPassword && lower == 'token') {
-      value = randomToken();
-    }
-    out[key] = value;
-  }
-  if (endpoint.encryptPassword && !out.containsKey('token')) {
-    out['token'] = randomToken();
-  }
-  return out;
-}
-
-/// 只保留非空参数（空串通常会被后端当成有效值，按需由用户显式填写）。
-Map<String, String> dropEmpty(Map<String, String> params) {
-  return <String, String>{
-    for (final MapEntry<String, String> e in params.entries)
-      if (e.value.isNotEmpty) e.key: e.value,
-  };
-}
-
 const String _tokenChars = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 String randomToken([int length = 32]) {
@@ -132,27 +74,4 @@ String dateText(DateTime date) {
   final String m = date.month.toString().padLeft(2, '0');
   final String d = date.day.toString().padLeft(2, '0');
   return '${date.year}-$m-$d';
-}
-
-/// 最近 [days] 天的日期区间（含今天）。
-(String, String) recentDateRange({int days = 30, DateTime? today}) {
-  final DateTime end = today ?? DateTime.now();
-  final DateTime start = DateTime(
-    end.year,
-    end.month,
-    end.day,
-  ).subtract(Duration(days: days));
-  return (dateText(start), dateText(end));
-}
-
-const Set<String> _dateRequiredPaths = <String>{
-  '/fee/balance/queryRechargePage',
-  '/market/transaction/sum/page',
-};
-
-/// 后端要求必填时间区间的接口，给出默认值（最近 30 天）。
-Map<String, String> dateRangeDefaults(String path) {
-  if (!_dateRequiredPaths.contains(path)) return const <String, String>{};
-  final (String start, String end) = recentDateRange();
-  return <String, String>{'startTime': start, 'endTime': end};
 }

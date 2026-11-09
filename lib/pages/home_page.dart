@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../services/app_state.dart';
 import 'payment_code_page.dart';
-import 'tabs/catalog_tab.dart';
 import 'tabs/home_tab.dart';
 import 'tabs/my_tab.dart';
 import 'tabs/water_tab.dart';
@@ -19,7 +18,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _index = 0;
-  String? _catalogModule;
   bool _expiredDialogShown = false;
 
   @override
@@ -28,18 +26,9 @@ class _HomePageState extends State<HomePage> {
     widget.app.client.onTokenExpired = _handleTokenExpired;
   }
 
-  void _openCatalog([String? module]) {
-    setState(() {
-      _index = 2;
-      _catalogModule = module;
-    });
-  }
-
   void _openPaymentCode() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => PaymentCodePage(app: widget.app),
-      ),
+      MaterialPageRoute<void>(builder: (_) => PaymentCodePage(app: widget.app)),
     );
   }
 
@@ -71,22 +60,16 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> tabs = <Widget>[
-      HomeTab(app: widget.app, onOpenCatalog: _openCatalog),
+      HomeTab(app: widget.app),
       WaterTab(app: widget.app, isActive: _index == 1),
-      CatalogTab(
-        app: widget.app,
-        initialModule: _catalogModule,
-        onModuleConsumed: () => _catalogModule = null,
-      ),
       MyTab(app: widget.app),
     ];
     const List<(IconData, IconData, String)> destinations =
         <(IconData, IconData, String)>[
-      (Icons.dashboard_outlined, Icons.dashboard, '首页'),
-      (Icons.water_drop_outlined, Icons.water_drop, '水控'),
-      (Icons.api_outlined, Icons.api, '接口'),
-      (Icons.person_outline, Icons.person, '我的'),
-    ];
+          (Icons.dashboard_outlined, Icons.dashboard, '首页'),
+          (Icons.water_drop_outlined, Icons.water_drop, '水控'),
+          (Icons.person_outline, Icons.person, '我的'),
+        ];
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
@@ -97,7 +80,10 @@ class _HomePageState extends State<HomePage> {
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Icon(Icons.credit_card, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.credit_card,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 const Text('重医一卡通'),
               ],
@@ -117,10 +103,15 @@ class _HomePageState extends State<HomePage> {
                   children: <Widget>[
                     NavigationRail(
                       selectedIndex: _index,
-                      onDestinationSelected: (int i) => setState(() => _index = i),
+                      onDestinationSelected: (int i) =>
+                          setState(() => _index = i),
                       labelType: NavigationRailLabelType.all,
                       destinations: <NavigationRailDestination>[
-                        for (final (IconData icon, IconData selected, String label)
+                        for (final (
+                              IconData icon,
+                              IconData selected,
+                              String label,
+                            )
                             in destinations)
                           NavigationRailDestination(
                             icon: Icon(icon),
@@ -160,8 +151,9 @@ class _HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.qr_code_2),
                   label: const Text('付款码'),
                 ),
-          floatingActionButtonLocation:
-              wide ? null : FloatingActionButtonLocation.centerFloat,
+          floatingActionButtonLocation: wide
+              ? null
+              : FloatingActionButtonLocation.centerFloat,
         );
       },
     );

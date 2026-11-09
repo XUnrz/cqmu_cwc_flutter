@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../../data/catalog_index.dart';
 import '../../services/app_state.dart';
 import '../../services/cwc_client.dart';
 import '../../utils/format.dart';
-import '../../widgets/filter_pill.dart';
-import '../data_calls_page.dart';
 import '../payment_code_page.dart';
 
-/// 首页：账户余额 + 常用接口快捷入口 + 模块浏览。
+/// 首页：电子卡余额与付款码入口。
 class HomeTab extends StatefulWidget {
-  const HomeTab({super.key, required this.app, required this.onOpenCatalog});
+  const HomeTab({super.key, required this.app});
 
   final AppState app;
-  final void Function([String? module]) onOpenCatalog;
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -23,18 +19,6 @@ class _HomeTabState extends State<HomeTab> {
   bool _loading = false;
   String? _error;
   Map<String, dynamic>? _ecard;
-
-  static const List<(IconData, String, String)> _quickActions =
-      <(IconData, String, String)>[
-        (Icons.wallet_outlined, '电子卡信息', '/eaccount/info'),
-        (Icons.qr_code_2, '付款码', '/eaccount/transKey'),
-        (Icons.savings_outlined, '充值记录', '/fee/balance/queryRechargePage'),
-        (Icons.pie_chart_outline, '消费统计', '/market/transaction/sum/page'),
-        (Icons.receipt_long_outlined, '交易流水', '/card/transaction/page'),
-        (Icons.apps, '我的菜单', '/baseconfig/v2/menus'),
-        (Icons.notifications_outlined, '通知', '/notice/tops'),
-        (Icons.credit_card, '校园卡信息', '/card/info/get'),
-      ];
 
   @override
   void initState() {
@@ -77,18 +61,6 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
-  void _openCalls(String title, String path) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => DataCallsPage(
-          app: widget.app,
-          title: title,
-          calls: <ApiCall>[ApiCall(path, overrides: dateRangeDefaults(path))],
-        ),
-      ),
-    );
-  }
-
   void _openPaymentCode() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => PaymentCodePage(app: widget.app)),
@@ -113,63 +85,21 @@ class _HomeTabState extends State<HomeTab> {
             onRetry: _loadAccount,
           ),
           const SizedBox(height: 20),
-          Row(
-            children: <Widget>[
-              Text('常用功能', style: theme.textTheme.titleMedium),
-              const Spacer(),
-              TextButton(
-                onPressed: () => widget.onOpenCatalog(),
-                child: const Text('全部接口'),
-              ),
-            ],
-          ),
-          LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              final int columns = (constraints.maxWidth / 96).floor().clamp(
-                4,
-                8,
-              );
-              return GridView.count(
-                crossAxisCount: columns,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 1.1,
-                children: <Widget>[
-                  for (final (IconData icon, String label, String path)
-                      in _quickActions)
-                    _QuickTile(
-                      icon: icon,
-                      label: label,
-                      onTap: () => path == '/eaccount/transKey'
-                          ? _openPaymentCode()
-                          : _openCalls(label, path),
-                    ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          Text('按模块浏览', style: theme.textTheme.titleMedium),
+          Text('常用功能', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: FilledButton.icon(
+              onPressed: _openPaymentCode,
+              icon: const Icon(Icons.qr_code_2),
+              label: const Text('打开付款码'),
+            ),
+          ),
+          const SizedBox(height: 10),
           Text(
-            '共 ${moduleCounts.values.fold<int>(0, (int a, int b) => a + b)} 个接口 · '
-            '${moduleCounts.length} 个模块',
+            '用水请前往底部“水控”选项卡，扫码开阀后用完后记得关阀结算。',
             style: theme.textTheme.bodySmall?.copyWith(color: scheme.outline),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              for (final String module in catalogModules)
-                FilterPill(
-                  label: '$module ${moduleCounts[module]}',
-                  selected: false,
-                  onTap: () => widget.onOpenCatalog(module),
-                ),
-            ],
           ),
         ],
       ),
@@ -341,45 +271,6 @@ class _BalanceCard extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _QuickTile extends StatelessWidget {
-  const _QuickTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(icon, color: scheme.primary),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -8,7 +8,6 @@ import '../../models/session.dart';
 import '../../services/app_state.dart';
 import '../../services/cwc_client.dart';
 import '../../utils/format.dart';
-import '../../widgets/output_log.dart';
 
 /// 水控：开阀用水（当前寝室 / 最近设备 / 扫码）与用水订单。
 class WaterTab extends StatefulWidget {
@@ -25,7 +24,6 @@ class _WaterTabState extends State<WaterTab> {
   bool _loading = false;
   bool _loaded = false;
   bool _busy = false;
-  bool _showRoomRaw = false;
   String? _error;
   Map<String, dynamic>? _roomData;
   String _latestDevice = '';
@@ -37,8 +35,6 @@ class _WaterTabState extends State<WaterTab> {
   DateTime? _openedAt;
   DateTime? _closedAt;
   int _waitSeconds = 0;
-  Map<String, dynamic>? _openResponse;
-  Map<String, dynamic>? _closeResponse;
   Timer? _ticker;
 
   @override
@@ -223,8 +219,6 @@ class _WaterTabState extends State<WaterTab> {
           _openedAt = createdAt ?? DateTime.now();
           _closedAt = null;
           _waitSeconds = 0;
-          _openResponse = item.cast<String, dynamic>();
-          _closeResponse = null;
           if (device.isNotEmpty) _latestDevice = device;
         });
         _startTicker();
@@ -240,54 +234,6 @@ class _WaterTabState extends State<WaterTab> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(text)));
-  }
-
-  void _showResult(String title, Map<String, dynamic> response) {
-    final bool ok = isSuccess(response);
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (BuildContext sheetContext) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.55,
-        minChildSize: 0.3,
-        maxChildSize: 0.92,
-        builder: (BuildContext context, ScrollController controller) {
-          return ListView(
-            controller: controller,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Icon(
-                    ok ? Icons.check_circle_outline : Icons.error_outline,
-                    color: ok
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '$title · ${response['status']}'
-                      '${messageOf(response).isEmpty ? '' : ' · ${messageOf(response)}'}',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: '复制响应',
-                    icon: const Icon(Icons.copy, size: 18),
-                    onPressed: () => copyText(context, prettyJson(response)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              JsonBlock(title: '$title · 完整响应', data: response, isError: !ok),
-            ],
-          );
-        },
-      ),
-    );
   }
 
   Future<void> _scanWater() async {
@@ -325,12 +271,12 @@ class _WaterTabState extends State<WaterTab> {
       );
       if (!mounted) return;
       if (!isSuccess(r)) {
-        _showResult('开阀失败', r);
+        _toast(_failText('开阀', r));
         return;
       }
       final String id = _scanOrderIdOf(r);
       if (id.isEmpty) {
-        _showResult('开阀失败：未返回订单 id', r);
+        _toast('开阀失败：设备未返回订单信息');
         return;
       }
       setState(() {
@@ -340,8 +286,6 @@ class _WaterTabState extends State<WaterTab> {
         _openedAt = DateTime.now();
         _closedAt = null;
         _waitSeconds = 0;
-        _openResponse = r;
-        _closeResponse = null;
         _latestDevice = device;
       });
       final bool opened = await _confirmOpened(id);
@@ -351,7 +295,6 @@ class _WaterTabState extends State<WaterTab> {
           _activeDevice = '';
           _orderId = '';
           _openedAt = null;
-          _openResponse = null;
         });
         return;
       }
@@ -383,7 +326,7 @@ class _WaterTabState extends State<WaterTab> {
       );
       if (!mounted) return;
       if (!isSuccess(r)) {
-        _showResult('关阀失败', r);
+        _toast(_failText('关阀', r));
         return;
       }
       setState(() {
@@ -392,7 +335,6 @@ class _WaterTabState extends State<WaterTab> {
         _openedAt = null;
         _orderId = '';
         _heldAmount = '';
-        _closeResponse = r;
       });
       _startTicker();
       _toast('已关阀，订单约 1 分钟后可查询');
@@ -437,7 +379,7 @@ class _WaterTabState extends State<WaterTab> {
       }
       if (!mounted) return false;
       if (!isSuccess(r)) {
-        _showResult('开阀确认失败', r);
+        _toast(_failText('开阀确认', r));
         return false;
       }
       final String state = _scalarText(dataOf(r));
@@ -556,12 +498,6 @@ class _WaterTabState extends State<WaterTab> {
                 icon: const Icon(Icons.stop_circle_outlined),
                 label: const Text('关阀结算'),
               ),
-              const SizedBox(width: 8),
-              if (_openResponse != null)
-                TextButton(
-                  onPressed: () => _showResult('开阀响应', _openResponse!),
-                  child: const Text('查看响应'),
-                ),
             ],
           ),
         ],
@@ -620,12 +556,6 @@ class _WaterTabState extends State<WaterTab> {
                 icon: const Icon(Icons.receipt_long_outlined),
                 label: const Text('查看用水订单'),
               ),
-              const SizedBox(width: 8),
-              if (_closeResponse != null)
-                TextButton(
-                  onPressed: () => _showResult('关阀响应', _closeResponse!),
-                  child: const Text('查看响应'),
-                ),
             ],
           ),
         ],
@@ -710,27 +640,6 @@ class _WaterTabState extends State<WaterTab> {
                           : scheme.error,
                     ),
                   ),
-                if (room != null) ...<Widget>[
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () =>
-                          setState(() => _showRoomRaw = !_showRoomRaw),
-                      icon: Icon(
-                        _showRoomRaw ? Icons.expand_less : Icons.expand_more,
-                        size: 18,
-                      ),
-                      label: Text(_showRoomRaw ? '收起原始数据' : '查看原始数据'),
-                    ),
-                  ),
-                  if (_showRoomRaw)
-                    JsonBlock(
-                      title: '房间信息 · 完整响应',
-                      data: _roomData,
-                      isError: _error != null,
-                    ),
-                ],
                 if (_error != null && room != null) ...<Widget>[
                   const SizedBox(height: 4),
                   Text(
@@ -1509,30 +1418,28 @@ class _WaterOrderCard extends StatelessWidget {
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 8),
       color: scheme.surfaceContainerHigh,
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        leading: CircleAvatar(
-          backgroundColor: scheme.primaryContainer,
-          foregroundColor: scheme.onPrimaryContainer,
-          child: const Icon(Icons.water_drop_outlined, size: 20),
-        ),
-        title: _OrderTitle(data: m),
-        subtitle: _OrderMeta(data: m),
-        children: <Widget>[
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => copyText(context, prettyJson(row)),
-              icon: const Icon(Icons.copy, size: 16),
-              label: const Text('复制 JSON'),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            CircleAvatar(
+              backgroundColor: scheme.primaryContainer,
+              foregroundColor: scheme.onPrimaryContainer,
+              child: const Icon(Icons.water_drop_outlined, size: 20),
             ),
-          ),
-          SelectableText(
-            prettyJson(row),
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _OrderTitle(data: m),
+                  _OrderMeta(data: m),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1706,6 +1613,11 @@ String _elapsedText(DateTime start) {
 String _shortDevice(String device) {
   if (device.length <= 14) return device;
   return '${device.substring(0, 6)}…${device.substring(device.length - 4)}';
+}
+
+String _failText(String action, Map<String, dynamic> response) {
+  final String message = messageOf(response);
+  return message.isEmpty ? '$action失败，请稍后重试' : '$action失败：$message';
 }
 
 String _scalarText(Object? value) {

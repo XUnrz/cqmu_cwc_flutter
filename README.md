@@ -1,17 +1,15 @@
 # cqmu_cwc
 
-A new Flutter project.
+Flutter 一卡通客户端，面向日常使用，包含：
 
-## Getting Started
+- 学号 + 短信验证码登录，本机记住账号信息并自动填充
+- 电子卡余额、状态与付款码
+- 水控扫码开阀、关阀结算与用水订单
+- 浅色 / 深色 / 跟随系统主题
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+开发版（含接口目录与调试页）见 `develop` 分支。
