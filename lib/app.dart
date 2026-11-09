@@ -63,7 +63,7 @@ class _CwcAppState extends State<CwcApp> {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1E5CBA),
+        seedColor: _app.accent.seed,
         brightness: brightness,
       ),
       inputDecorationTheme: const InputDecorationTheme(

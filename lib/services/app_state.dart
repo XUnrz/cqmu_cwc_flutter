@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/session.dart';
+import '../theme/accent_theme.dart';
 import 'cwc_client.dart';
 import 'session_store.dart';
 import 'settings_store.dart';
@@ -12,6 +13,7 @@ class AppState extends ChangeNotifier {
   final CwcClient client;
   CwcSession? session;
   ThemeMode themeMode = ThemeMode.system;
+  AccentTheme accent = AccentTheme.blue;
 
   bool restoring = true;
   bool busy = false;
@@ -25,6 +27,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     session = await SessionStore.load();
     themeMode = await SettingsStore.loadThemeMode();
+    accent = await SettingsStore.loadAccent();
     restoring = false;
     notifyListeners();
   }
@@ -34,6 +37,13 @@ class AppState extends ChangeNotifier {
     themeMode = mode;
     notifyListeners();
     await SettingsStore.saveThemeMode(mode);
+  }
+
+  Future<void> setAccent(AccentTheme value) async {
+    if (accent == value) return;
+    accent = value;
+    notifyListeners();
+    await SettingsStore.saveAccent(value);
   }
 
   Future<void> signIn({
