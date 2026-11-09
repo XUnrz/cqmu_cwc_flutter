@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/app_state.dart';
+import '../../theme/accent_theme.dart';
 
 /// 我的：账号信息、主题与退出登录。
 class MyTab extends StatelessWidget {
@@ -85,6 +86,26 @@ class MyTab extends StatelessWidget {
                   onSelectionChanged: (Set<ThemeMode> selected) =>
                       app.setThemeMode(selected.first),
                 ),
+                const SizedBox(height: 16),
+                Text(
+                  '主题色',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: <Widget>[
+                    for (final AccentTheme accent in AccentTheme.values)
+                      _AccentDot(
+                        accent: accent,
+                        selected: app.accent == accent,
+                        onTap: () => app.setAccent(accent),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -114,6 +135,51 @@ class MyTab extends StatelessWidget {
           label: const Text('退出登录'),
         ),
       ],
+    );
+  }
+}
+
+class _AccentDot extends StatelessWidget {
+  const _AccentDot({
+    required this.accent,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AccentTheme accent;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: accent.label,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Container(
+          width: 44,
+          height: 44,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: selected ? scheme.onSurface : scheme.outlineVariant,
+              width: selected ? 2.5 : 1,
+            ),
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: accent.seed,
+              shape: BoxShape.circle,
+            ),
+            child: selected
+                ? const Icon(Icons.check, color: Colors.white, size: 20)
+                : null,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:cqmu_cwc/services/app_state.dart';
 import 'package:cqmu_cwc/services/settings_store.dart';
+import 'package:cqmu_cwc/theme/accent_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,5 +22,35 @@ void main() {
 
     await restored.setThemeMode(ThemeMode.light);
     expect(await SettingsStore.loadThemeMode(), ThemeMode.light);
+  });
+
+  test('主题色默认经典蓝且可持久化恢复', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final AppState app = AppState();
+    await app.restore();
+    expect(app.accent, AccentTheme.blue);
+
+    await app.setAccent(AccentTheme.purple);
+    expect(await SettingsStore.loadAccent(), AccentTheme.purple);
+
+    final AppState restored = AppState();
+    await restored.restore();
+    expect(restored.accent, AccentTheme.purple);
+  });
+
+  test('未知主题色回退到经典蓝', () {
+    expect(AccentTheme.fromName('not-exist'), AccentTheme.blue);
+    expect(AccentTheme.fromName(null), AccentTheme.blue);
+    expect(AccentTheme.fromName('rose'), AccentTheme.rose);
+  });
+
+  test('每个主题色都有独立的种子色与名称', () {
+    final Set<Color> seeds =
+        AccentTheme.values.map((AccentTheme e) => e.seed).toSet();
+    final Set<String> labels =
+        AccentTheme.values.map((AccentTheme e) => e.label).toSet();
+    expect(seeds.length, AccentTheme.values.length);
+    expect(labels.length, AccentTheme.values.length);
   });
 }
