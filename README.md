@@ -16,3 +16,7 @@ flutter test
 ```
 
 精简版见 `main` 分支。
+
+---
+
+[这里是openid获取教程](https://blog.xnrz.top/archives/guan-yu-yi-qia-tong-ke-hu-duan-ru-he-huo-qu-openid)
